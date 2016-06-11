@@ -1,0 +1,390 @@
+<html>
+	<title> MasterMind </title>
+	
+	<head>
+		<script>
+			var un;
+			var gid;
+			var started = false;
+			var won = false;
+			var myTurn = false;
+			var turn = 0;
+			var myForm; 
+			var myGame;
+			var operation;
+			var guess = new Array();
+			
+			setInterval( function(){ getUpdate() }, 5000 );
+		
+			var servers = [ 
+				"http://localhost/MasterMind/gameServer.php?",
+				"http://localhost:8080/MasterMind/gameServer.jsp?"];
+			var serverIndex=0;	
+		
+			function Start()
+			{
+				un = document.getElementById("username");
+				//gid = document.getElementById("gameID");
+				myForm = document.getElementById("form"); 
+				myGame = document.getElementById("board");
+				operation = "start";
+				
+				if(un.value == "")
+				{
+					alert("Please enter a username.");
+				}
+				else
+				{
+					myForm.style.display = "none";
+					myGame.style.display = "block";
+					turn = 1;
+					/* Send a request to the server with the username to start a new game and get a unique game id */
+					var req = new XMLHttpRequest();
+					req.open("GET", servers[serverIndex] + "username="+un.value+"&opr="+operation, true);
+					/* NOTE: the request will be sent as a GET method to the URL gameServer.php,
+							 and in Asynchronous (standard) mode...*/
+					req.onreadystatechange = function(){
+						if(req.readyState == 4 & req.status == 200){
+							var res = req.responseText;
+							//console.log(res);
+							document.getElementById("idDisplay").value = res;
+							started = true;
+						}
+					}
+					req.send();
+				}
+			}
+			
+			function Join()
+			{
+				un = document.getElementById("username");
+				gid = document.getElementById("gameID");
+				myForm = document.getElementById("form"); 
+				myGame = document.getElementById("board");
+				operation = "join";
+				
+				if((un.value == "") && (gid.value == ""))
+				{
+					alert("Please enter a username and a game ID."); 
+				}
+				else if(un.value == "")
+				{
+					alert("Please enter a username."); 
+				}
+				else if(gid.value == "")
+				{
+					alert("Please enter a game ID.");
+				}
+				else
+				{
+					myForm.style.display = "none";
+					myGame.style.display = "block";
+					document.getElementById("idDisplay").value = gid.value;
+					started = true;
+					turn = 2;
+					
+					/* Send a request to the server with the username to start a new game and get a unique game id */
+					var req = new XMLHttpRequest();
+					req.open("GET", servers[serverIndex] + "username="+un.value+"&gid="+gid.value+"&opr="+operation, true);
+					/* NOTE: the request will be sent as a GET method to the URL gameServer.php,
+							 and in Asynchronous (standard) mode...*/
+					req.onreadystatechange = function(){
+						if(req.readyState == 4 & req.status == 200){
+							var res = req.responseText;
+							
+							//console.log(res);			
+						}
+					}
+					req.send();
+				}
+			}
+			
+			function append(colour, value)
+			{
+				var disp;
+				if(value == 0)
+				{
+					disp = document.getElementById("display1");
+				}
+				if(value == 1)
+				{
+					disp = document.getElementById("display2");
+				}
+				if(value == 2)
+				{
+					disp = document.getElementById("display3");
+				}
+				guess[value] = colour;	
+				disp.innerHTML = colour;
+			}
+			
+			function Guess()
+			{
+				un = document.getElementById("username");
+				gid = document.getElementById("idDisplay");
+				myForm = document.getElementById("form"); 
+				myGame = document.getElementById("board");
+				operation = "guess";
+				
+				var req = new XMLHttpRequest();
+				req.open("GET", servers[serverIndex] + "username="+un.value+"&gid="+gid.value+"&g="+guess[0]+guess[1]+guess[2]+"&opr="+operation, true);
+				/* NOTE: the request will be sent as a GET method to the URL gameServer.php,
+						 and in Asynchronous (standard) mode...*/
+				req.onreadystatechange = function(){
+					if(req.readyState == 4 & req.status == 200){
+						var res = req.responseText;
+						//console.log(res);
+						
+						document.getElementById("result").innerHTML = " ";	//prevent results from being re-written
+						
+						for(var i = 0; i < res.length; i++)
+						{
+							document.getElementById("result").innerHTML += res[i];
+							
+							//if it is the end of a sentence...
+							if(res[i] == ".") 
+							{ 
+								document.getElementById("result").innerHTML += "<br/>";
+							}
+							
+							if(res[i] == "3")
+							{
+								won = true;
+							}
+						}
+								
+						if(won)
+						{
+							document.getElementById("end").innerHTML = "Game Over!";
+							document.getElementById("BoardGame").style.visibility = "hidden";	
+						}
+					}
+				}
+				req.onerror = function(e)
+				{
+					serverIndex++;
+					if(serverIndex == 1)
+					{
+						alert("Switch to second server");
+						// execute again the function with the second server
+						Guess();
+					}
+					else
+					{
+						alert("Both servers are down");
+					}
+					
+				};
+				
+				req.send();
+			}
+			
+			function getUpdate()
+			{
+				un = document.getElementById("username");
+				if(started) 
+				{ 
+					gid = document.getElementById("idDisplay");
+				}
+				myForm = document.getElementById("form"); 
+				myGame = document.getElementById("board");
+				operation = "update";
+				
+				if(started)
+				{
+					var req = new XMLHttpRequest();
+					req.open("GET", servers[serverIndex] + "username="+un.value+"&gid="+gid.value+"&g="+guess[0]+guess[1]+guess[2]+"&opr="+operation, true);
+					/* NOTE: the request will be sent as a GET method to the URL gameServer.php,
+							 and in Asynchronous (standard) mode...*/
+					req.onreadystatechange = function(){
+						if(req.readyState == 4 & req.status == 200){
+							var res = req.responseText;
+							//console.log(res);
+							
+							document.getElementById("result").innerHTML = " ";	//prevent results from being re-written
+								
+							for(var i = 0; i < res.length; i++)
+							{
+								document.getElementById("result").innerHTML += res[i];
+								
+								//if it is the end of a sentence...
+								if(res[i] == ".") 
+								{ 
+									document.getElementById("result").innerHTML += "<br/>";
+								}
+								
+								if(res[i] == "3")
+								{
+									won = true;
+								}
+							}
+								
+							if(won)
+							{
+								document.getElementById("end").innerHTML = "Game Over!";
+								document.getElementById("BoardGame").style.visibility = "hidden";	
+							}
+						}
+					}
+					req.onerror = function(e){
+						
+						serverIndex++;
+						if(serverIndex == 1)
+						{
+							alert("Switch to second server");
+							// execute again the function with the second server
+							getUpdate();
+						}
+						else
+						{
+							alert("Both servers are down");
+						}
+						
+					};
+					
+					req.send();
+				}
+			}
+			
+			function checkTurn()
+			{
+				un = document.getElementById("username");
+				gid = document.getElementById("idDisplay");
+				operation = "check";
+				
+				/* Send a request to the server with the username to start a new game and get a unique game id */
+				var req = new XMLHttpRequest();
+				req.open("GET", servers[serverIndex] + "gid="+gid.value+"&opr="+operation, true);
+				/* NOTE: the request will be sent as a GET method to the URL gameServer.php,
+						 and in Asynchronous (standard) mode...*/
+				req.onreadystatechange = function(){
+					if(req.readyState == 4 & req.status == 200){
+						var res = req.responseText;
+						
+						//console.log(res);			
+							
+						if(res == "" && turn == 1)
+						{
+							myTurn = true;
+							Guess();
+						}
+						else if(res == "" && turn != 1)
+						{
+							myTurn = false;
+							alert("It is not your turn to play.");
+						}
+						else{
+							var str = res.split(" ");
+						
+							//console.log(str[str.length-5]);
+							if(str[str.length-5] == un.value)
+							{
+								myTurn = false;
+								alert("It is not your turn to play.");
+							}
+							else
+							{
+								myTurn = true;
+								Guess();
+							}
+						}
+					}
+				}
+				req.onerror = function(e){
+					
+					serverIndex++;
+					if(serverIndex == 1)
+					{
+						alert("Switch to second server");
+						// execute again the function with the second server
+						checkTurn();
+					}
+					else
+					{
+						alert("Both servers are down");
+					}
+					
+				};
+				
+				req.send();
+			}
+		</script>
+	</head>
+	
+	<body>
+	
+		<div id="form" style="display:block">
+			<h3> You can start a new game or join a game started by another user </h3>
+			
+			<input type="text" id="username" name="username"/>
+			<button onclick="Start()">Start Game</button> <br/>
+			<input type="text" id="gameID" name="gameID"/>
+			<button onclick="Join()">Join Game </button> <br/>
+		</div>
+		
+		<div id="board" style="display:none">
+			<h1> MasterMind Game </h1>
+			<h2> SYSC 4504 - Lab # 3 </h2>
+			<h3> Itaf Omar Joudeh, 100859363 </h3>
+
+			<input type="text" id="idDisplay" style="margin-bottom:20px" disabled="true"> </input>
+			
+			<table frame="box" id="BoardGame">
+				<tr align="center">
+					<td>
+						<div id="display1" style="height:20px"> </div>
+					</td>
+					<td>
+						<div id="display2" style="height:20px"> </div>
+					</td>
+					<td>
+						<div id="display3" style="height:20px"> </div>
+					</td>
+				</tr>
+				<tr>	
+					<td>
+						<button onclick="append('B', 0)"> B </button>
+					</td>
+					<td>
+						<button onclick="append('B', 1)"> B </button>
+					</td>
+					<td>
+						<button onclick="append('B', 2)"> B </button>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<button onclick="append('R', 0)"> R </button>
+					</td>
+					<td>
+						<button onclick="append('R', 1)"> R </button>
+					</td>
+					<td>
+						<button onclick="append('R', 2)"> R </button>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<button onclick="append('G', 0)"> G </button>
+					</td>
+					<td>
+						<button onclick="append('G', 1)"> G </button>
+					</td>
+					<td>
+						<button onclick="append('G', 2)"> G </button>
+					</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td>
+							<button onclick="checkTurn()"> Ok </button>
+					</td>
+				</tr>
+			</table>
+			
+			<div id="result" style="margin-top:20px"> </div>
+			
+			<div id="end" style="margin-top:20px"> </div>
+		</div>
+	</body>
+</html>
